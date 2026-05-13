@@ -42,6 +42,12 @@ class UserService(
         }
     }
 
+    @Transactional
+    fun changePassword(loginId: String, currentRawPassword: String, newRawPassword: String) {
+        val user = authenticate(loginId, currentRawPassword)
+        user.changePassword(passwordEncoder.encode(newRawPassword))
+    }
+
     fun authenticate(loginId: String, rawPassword: String): UserModel {
         if (!loginId.matches(LOGIN_ID_REGEX)) {
             throw CoreException(ErrorType.BAD_REQUEST, "로그인 ID는 영문과 숫자만 허용됩니다.")

@@ -3,6 +3,7 @@ package com.loopers.interfaces.api.user
 import com.loopers.application.user.UserFacade
 import com.loopers.interfaces.api.ApiResponse
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
@@ -36,5 +37,15 @@ class UserV1Controller(
         return userFacade.getMyInfo(loginId, loginPw)
             .let { UserV1Dto.UserResponse.from(it) }
             .let { ApiResponse.success(it) }
+    }
+
+    @PatchMapping("/me/password")
+    override fun changePassword(
+        @RequestHeader("X-Loopers-LoginId") loginId: String,
+        @RequestHeader("X-Loopers-LoginPw") loginPw: String,
+        @RequestBody request: UserV1Dto.ChangePasswordRequest,
+    ): ApiResponse<Unit> {
+        userFacade.changePassword(loginId, request.currentPassword, request.newPassword)
+        return ApiResponse.success(Unit)
     }
 }

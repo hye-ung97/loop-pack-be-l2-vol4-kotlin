@@ -43,6 +43,10 @@ class UserModel(
         }
     }
 
+    fun changePassword(encodedPassword: String) {
+        this.password = encodedPassword
+    }
+
     companion object {
         private val LOGIN_ID_REGEX = Regex("^[A-Za-z0-9]+$")
         private val EMAIL_REGEX = Regex("^[^@]+@[^@]+\\.[^@]+")

@@ -12,6 +12,11 @@ class UserV1Dto {
         val email: String,
     )
 
+    data class ChangePasswordRequest(
+        val currentPassword: String,
+        val newPassword: String,
+    )
+
     data class UserResponse(
         val id: Long,
         val loginId: String,

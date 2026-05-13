@@ -17,4 +17,8 @@ class UserFacade(
         val info = userService.authenticate(loginId, rawPassword).let(UserInfo::from)
         return info.copy(name = info.name.dropLast(1) + "*")
     }
+
+    fun changePassword(loginId: String, currentRawPassword: String, newRawPassword: String) {
+        userService.changePassword(loginId, currentRawPassword, newRawPassword)
+    }
 }

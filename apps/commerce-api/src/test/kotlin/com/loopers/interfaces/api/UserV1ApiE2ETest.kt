@@ -26,6 +26,7 @@ class UserV1ApiE2ETest @Autowired constructor(
     companion object {
         private const val ENDPOINT_SIGN_UP = "/api/v1/users"
         private const val ENDPOINT_MY_INFO = "/api/v1/users/me"
+        private const val ENDPOINT_CHANGE_PW = "/api/v1/users/me/password"
     }
 
     @AfterEach
@@ -195,6 +196,84 @@ class UserV1ApiE2ETest @Autowired constructor(
             // act
             val responseType = object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {}
             val response = testRestTemplate.exchange(ENDPOINT_MY_INFO, HttpMethod.GET, HttpEntity<Any>(authHeaders(id = "user@123")), responseType)
+
+            // assert
+            assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
+        }
+    }
+
+    @DisplayName("PATCH /api/v1/users/me/password")
+    @Nested
+    inner class ChangePassword {
+        private val loginId = "user123"
+        private val currentPassword = "Valid1!pw"
+        private val birthDate = LocalDate.of(1994, 7, 14)
+
+        private fun signUp() {
+            val request = UserV1Dto.SignUpRequest(loginId, currentPassword, "홍길동", birthDate, "hong@example.com")
+            testRestTemplate.exchange(ENDPOINT_SIGN_UP, HttpMethod.POST, HttpEntity(request), object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {})
+        }
+
+        private fun authHeaders(id: String = loginId, pw: String = currentPassword) = HttpHeaders().apply {
+            set("X-Loopers-LoginId", id)
+            set("X-Loopers-LoginPw", pw)
+        }
+
+        @DisplayName("유효한 새 비밀번호로 요청하면, 200 응답을 받는다.")
+        @Test
+        fun returnsOk_whenNewPasswordIsValid() {
+            // arrange
+            signUp()
+            val request = UserV1Dto.ChangePasswordRequest(currentPassword = currentPassword, newPassword = "NewValid2@pw")
+
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<Unit>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_CHANGE_PW, HttpMethod.PATCH, HttpEntity(request, authHeaders()), responseType)
+
+            // assert
+            assertThat(response.statusCode.is2xxSuccessful).isTrue()
+        }
+
+        @DisplayName("기존 비밀번호가 틀리면, 401 UNAUTHORIZED 응답을 받는다.")
+        @Test
+        fun returnsUnauthorized_whenCurrentPasswordIsWrong() {
+            // arrange
+            signUp()
+            val request = UserV1Dto.ChangePasswordRequest(currentPassword = "WrongPw1!", newPassword = "NewValid2@pw")
+
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<Unit>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_CHANGE_PW, HttpMethod.PATCH, HttpEntity(request, authHeaders()), responseType)
+
+            // assert
+            assertThat(response.statusCode).isEqualTo(HttpStatus.UNAUTHORIZED)
+        }
+
+        @DisplayName("새 비밀번호가 현재 비밀번호와 동일하면, 400 BAD_REQUEST 응답을 받는다.")
+        @Test
+        fun returnsBadRequest_whenNewPasswordIsSameAsCurrent() {
+            // arrange
+            signUp()
+            val request = UserV1Dto.ChangePasswordRequest(currentPassword = currentPassword, newPassword = currentPassword)
+
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<Unit>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_CHANGE_PW, HttpMethod.PATCH, HttpEntity(request, authHeaders()), responseType)
+
+            // assert
+            assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
+        }
+
+        @DisplayName("새 비밀번호 형식이 올바르지 않으면, 400 BAD_REQUEST 응답을 받는다.")
+        @Test
+        fun returnsBadRequest_whenNewPasswordViolatesRule() {
+            // arrange
+            signUp()
+            val request = UserV1Dto.ChangePasswordRequest(currentPassword = currentPassword, newPassword = "short")
+
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<Unit>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_CHANGE_PW, HttpMethod.PATCH, HttpEntity(request, authHeaders()), responseType)
 
             // assert
             assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)

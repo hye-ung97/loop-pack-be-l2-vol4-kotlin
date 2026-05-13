@@ -16,4 +16,11 @@ interface UserV1ApiSpec {
         @RequestHeader("X-Loopers-LoginId") loginId: String,
         @RequestHeader("X-Loopers-LoginPw") loginPw: String,
     ): ApiResponse<UserV1Dto.UserResponse>
+
+    @Operation(summary = "비밀번호 수정")
+    fun changePassword(
+        @RequestHeader("X-Loopers-LoginId") loginId: String,
+        @RequestHeader("X-Loopers-LoginPw") loginPw: String,
+        @RequestBody request: UserV1Dto.ChangePasswordRequest,
+    ): ApiResponse<Unit>
 }

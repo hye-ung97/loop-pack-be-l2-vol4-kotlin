@@ -195,4 +195,71 @@ class UserServiceIntegrationTest @Autowired constructor(
             assertThat(result.errorType).isEqualTo(ErrorType.BAD_REQUEST)
         }
     }
+
+    @DisplayName("비밀번호를 수정할 때,")
+    @Nested
+    inner class ChangePassword {
+        @DisplayName("유효한 새 비밀번호를 주면, 비밀번호가 변경된다.")
+        @Test
+        fun changesPassword_whenNewPasswordIsValid() {
+            // arrange
+            val loginId = "user123"
+            val oldPassword = "Valid1!pw"
+            val newPassword = "NewValid2@pw"
+            userService.signUp(loginId, oldPassword, "홍길동", birthDate, "hong@example.com")
+
+            // act
+            userService.changePassword(loginId, oldPassword, newPassword)
+
+            // assert - 새 비밀번호로 인증 성공
+            val result = userService.authenticate(loginId, newPassword)
+            assertThat(result.loginId).isEqualTo(loginId)
+        }
+
+        @DisplayName("기존 비밀번호가 틀리면, UNAUTHORIZED 예외가 발생한다.")
+        @Test
+        fun throwsUnauthorized_whenCurrentPasswordIsWrong() {
+            // arrange
+            userService.signUp("user123", "Valid1!pw", "홍길동", birthDate, "hong@example.com")
+
+            // act
+            val result = assertThrows<CoreException> {
+                userService.changePassword("user123", "WrongPw1!", "NewValid2@pw")
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.UNAUTHORIZED)
+        }
+
+        @DisplayName("새 비밀번호가 현재 비밀번호와 동일하면, BAD_REQUEST 예외가 발생한다.")
+        @Test
+        fun throwsBadRequest_whenNewPasswordIsSameAsCurrent() {
+            // arrange
+            val password = "Valid1!pw"
+            userService.signUp("user123", password, "홍길동", birthDate, "hong@example.com")
+
+            // act
+            val result = assertThrows<CoreException> {
+                userService.changePassword("user123", password, password)
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.BAD_REQUEST)
+        }
+
+        @DisplayName("새 비밀번호가 비밀번호 규칙에 맞지 않으면, BAD_REQUEST 예외가 발생한다.")
+        @Test
+        fun throwsBadRequest_whenNewPasswordViolatesRule() {
+            // arrange
+            userService.signUp("user123", "Valid1!pw", "홍길동", birthDate, "hong@example.com")
+
+            // act
+            val result = assertThrows<CoreException> {
+                userService.changePassword("user123", "Valid1!pw", "short")
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.BAD_REQUEST)
+        }
+    }
 }
