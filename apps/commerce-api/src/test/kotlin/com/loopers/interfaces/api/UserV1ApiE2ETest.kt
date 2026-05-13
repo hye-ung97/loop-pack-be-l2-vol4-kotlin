@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import java.time.LocalDate
@@ -24,6 +25,7 @@ class UserV1ApiE2ETest @Autowired constructor(
 ) {
     companion object {
         private const val ENDPOINT_SIGN_UP = "/api/v1/users"
+        private const val ENDPOINT_MY_INFO = "/api/v1/users/me"
     }
 
     @AfterEach
@@ -124,6 +126,78 @@ class UserV1ApiE2ETest @Autowired constructor(
             assertAll(
                 { assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST) },
             )
+        }
+    }
+
+    @DisplayName("GET /api/v1/users/me")
+    @Nested
+    inner class GetMyInfo {
+        private val loginId = "user123"
+        private val rawPassword = "Valid1!pw"
+        private val birthDate = LocalDate.of(1994, 7, 14)
+
+        private fun signUp(loginId: String = this.loginId, password: String = rawPassword) {
+            val request = UserV1Dto.SignUpRequest(loginId, password, "홍길동", birthDate, "hong@example.com")
+            testRestTemplate.exchange(ENDPOINT_SIGN_UP, HttpMethod.POST, HttpEntity(request), object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {})
+        }
+
+        private fun authHeaders(id: String = loginId, pw: String = rawPassword) = HttpHeaders().apply {
+            set("X-Loopers-LoginId", id)
+            set("X-Loopers-LoginPw", pw)
+        }
+
+        @DisplayName("유효한 인증 정보를 주면, 이름이 마스킹된 유저 정보를 반환한다.")
+        @Test
+        fun returnsUserInfoWithMaskedName_whenValidCredentialsAreProvided() {
+            // arrange
+            signUp()
+
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_MY_INFO, HttpMethod.GET, HttpEntity<Any>(authHeaders()), responseType)
+
+            // assert
+            assertAll(
+                { assertThat(response.statusCode.is2xxSuccessful).isTrue() },
+                { assertThat(response.body?.data?.loginId).isEqualTo(loginId) },
+                { assertThat(response.body?.data?.name).isEqualTo("홍길*") },
+            )
+        }
+
+        @DisplayName("존재하지 않는 로그인 ID로 요청하면, 404 NOT_FOUND 응답을 받는다.")
+        @Test
+        fun returnsNotFound_whenLoginIdDoesNotExist() {
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_MY_INFO, HttpMethod.GET, HttpEntity<Any>(authHeaders(id = "ghost")), responseType)
+
+            // assert
+            assertThat(response.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+        }
+
+        @DisplayName("비밀번호가 틀리면, 401 UNAUTHORIZED 응답을 받는다.")
+        @Test
+        fun returnsUnauthorized_whenPasswordIsWrong() {
+            // arrange
+            signUp()
+
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_MY_INFO, HttpMethod.GET, HttpEntity<Any>(authHeaders(pw = "WrongPw1!")), responseType)
+
+            // assert
+            assertThat(response.statusCode).isEqualTo(HttpStatus.UNAUTHORIZED)
+        }
+
+        @DisplayName("로그인 ID 형식이 올바르지 않으면, 400 BAD_REQUEST 응답을 받는다.")
+        @Test
+        fun returnsBadRequest_whenLoginIdFormatIsInvalid() {
+            // act
+            val responseType = object : ParameterizedTypeReference<ApiResponse<UserV1Dto.UserResponse>>() {}
+            val response = testRestTemplate.exchange(ENDPOINT_MY_INFO, HttpMethod.GET, HttpEntity<Any>(authHeaders(id = "user@123")), responseType)
+
+            // assert
+            assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
         }
     }
 }

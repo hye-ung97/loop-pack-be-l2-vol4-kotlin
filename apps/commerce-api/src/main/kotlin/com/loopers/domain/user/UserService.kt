@@ -42,6 +42,11 @@ class UserService(
         }
     }
 
+    fun authenticate(loginId: String, rawPassword: String): UserModel {
+        return userRepository.findByLoginId(loginId)
+            ?: throw CoreException(ErrorType.NOT_FOUND, "존재하지 않는 사용자입니다.")
+    }
+
     companion object {
         private val PASSWORD_REGEX = Regex("""^[A-Za-z0-9!@#${'$'}%^&*()_+\-=\[\]{};':"\\|,.<>/?]+$""")
         private val BIRTH_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd")

@@ -128,4 +128,71 @@ class UserServiceIntegrationTest @Autowired constructor(
             assertThat(result.errorType).isEqualTo(ErrorType.BAD_REQUEST)
         }
     }
+
+    @DisplayName("내 정보를 조회할 때,")
+    @Nested
+    inner class GetMyInfo {
+        @DisplayName("유효한 인증 정보를 주면, 유저 정보를 반환한다.")
+        @Test
+        fun returnsUserModel_whenValidCredentialsAreProvided() {
+            // arrange
+            val loginId = "user123"
+            val rawPassword = "Valid1!pw"
+            userService.signUp(loginId, rawPassword, "홍길동", birthDate, "hong@example.com")
+
+            // act
+            val result = userService.authenticate(loginId, rawPassword)
+
+            // assert
+            assertAll(
+                { assertThat(result.loginId).isEqualTo(loginId) },
+                { assertThat(result.name).isEqualTo("홍길동") },
+            )
+        }
+
+        @DisplayName("존재하지 않는 로그인 ID로 조회하면, NOT_FOUND 예외가 발생한다.")
+        @Test
+        fun throwsNotFound_whenLoginIdDoesNotExist() {
+            // arrange
+            val nonExistentLoginId = "ghost"
+
+            // act
+            val result = assertThrows<CoreException> {
+                userService.authenticate(nonExistentLoginId, "anyPassword")
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.NOT_FOUND)
+        }
+
+        @DisplayName("비밀번호가 틀리면, UNAUTHORIZED 예외가 발생한다.")
+        @Test
+        fun throwsUnauthorized_whenPasswordIsWrong() {
+            // arrange
+            userService.signUp("user123", "Valid1!pw", "홍길동", birthDate, "hong@example.com")
+
+            // act
+            val result = assertThrows<CoreException> {
+                userService.authenticate("user123", "WrongPw1!")
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.UNAUTHORIZED)
+        }
+
+        @DisplayName("로그인 ID 형식이 올바르지 않으면, BAD_REQUEST 예외가 발생한다.")
+        @Test
+        fun throwsBadRequest_whenLoginIdFormatIsInvalid() {
+            // arrange
+            val invalidLoginId = "user@123"
+
+            // act
+            val result = assertThrows<CoreException> {
+                userService.authenticate(invalidLoginId, "Valid1!pw")
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.BAD_REQUEST)
+        }
+    }
 }
