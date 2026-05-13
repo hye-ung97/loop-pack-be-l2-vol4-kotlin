@@ -45,6 +45,10 @@ class UserService(
     @Transactional
     fun changePassword(loginId: String, currentRawPassword: String, newRawPassword: String) {
         val user = authenticate(loginId, currentRawPassword)
+        if (passwordEncoder.matches(newRawPassword, user.password)) {
+            throw CoreException(ErrorType.BAD_REQUEST, "현재 비밀번호와 동일한 비밀번호는 사용할 수 없습니다.")
+        }
+        validatePassword(newRawPassword, user.birthDate)
         user.changePassword(passwordEncoder.encode(newRawPassword))
     }
 
