@@ -43,11 +43,19 @@ class UserService(
     }
 
     fun authenticate(loginId: String, rawPassword: String): UserModel {
-        return userRepository.findByLoginId(loginId)
+        if (!loginId.matches(LOGIN_ID_REGEX)) {
+            throw CoreException(ErrorType.BAD_REQUEST, "로그인 ID는 영문과 숫자만 허용됩니다.")
+        }
+        val user = userRepository.findByLoginId(loginId)
             ?: throw CoreException(ErrorType.NOT_FOUND, "존재하지 않는 사용자입니다.")
+        if (!passwordEncoder.matches(rawPassword, user.password)) {
+            throw CoreException(ErrorType.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.")
+        }
+        return user
     }
 
     companion object {
+        private val LOGIN_ID_REGEX = Regex("^[A-Za-z0-9]+$")
         private val PASSWORD_REGEX = Regex("""^[A-Za-z0-9!@#${'$'}%^&*()_+\-=\[\]{};':"\\|,.<>/?]+$""")
         private val BIRTH_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd")
     }
