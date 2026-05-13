@@ -14,8 +14,7 @@ class UserFacade(
     }
 
     fun getMyInfo(loginId: String, rawPassword: String): UserInfo {
-        return userService.authenticate(loginId, rawPassword)
-            .let { UserInfo.from(it) }
-            .let { it.copy(name = it.name.dropLast(1) + "*") }
+        val info = userService.authenticate(loginId, rawPassword).let(UserInfo::from)
+        return info.copy(name = info.name.dropLast(1) + "*")
     }
 }
