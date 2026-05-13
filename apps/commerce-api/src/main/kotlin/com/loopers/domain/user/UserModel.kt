@@ -32,14 +32,19 @@ class UserModel(
         protected set
 
     init {
-        if (loginId.isBlank() || !loginId.matches(Regex("^[A-Za-z0-9]+$"))) {
+        if (!loginId.matches(LOGIN_ID_REGEX)) {
             throw CoreException(ErrorType.BAD_REQUEST, "로그인 ID는 영문과 숫자만 허용됩니다.")
         }
         if (name.isBlank()) {
             throw CoreException(ErrorType.BAD_REQUEST, "이름은 비어있을 수 없습니다.")
         }
-        if (!email.matches(Regex("^[^@]+@[^@]+\\.[^@]+"))) {
+        if (!email.matches(EMAIL_REGEX)) {
             throw CoreException(ErrorType.BAD_REQUEST, "이메일 형식이 올바르지 않습니다.")
         }
+    }
+
+    companion object {
+        private val LOGIN_ID_REGEX = Regex("^[A-Za-z0-9]+$")
+        private val EMAIL_REGEX = Regex("^[^@]+@[^@]+\\.[^@]+")
     }
 }
