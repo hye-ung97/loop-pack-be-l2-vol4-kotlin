@@ -1,0 +1,72 @@
+package com.loopers.domain.user
+
+import com.loopers.support.error.CoreException
+import com.loopers.support.error.ErrorType
+import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+@Component
+@Transactional(readOnly = true)
+class UserService(
+    private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder,
+) {
+    fun authenticate(loginId: String, rawPassword: String): UserModel {
+        if (!loginId.matches(LOGIN_ID_REGEX)) {
+            throw CoreException(ErrorType.BAD_REQUEST, "로그인 ID는 영문과 숫자만 허용됩니다.")
+        }
+        val user = userRepository.findByLoginId(loginId)
+            ?: throw CoreException(ErrorType.NOT_FOUND, "존재하지 않는 사용자입니다.")
+        if (!passwordEncoder.matches(rawPassword, user.password)) {
+            throw CoreException(ErrorType.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.")
+        }
+        return user
+    }
+
+    @Transactional
+    fun signUp(loginId: String, rawPassword: String, name: String, birthDate: LocalDate, email: String): UserModel {
+        if (userRepository.findByLoginId(loginId) != null) {
+            throw CoreException(ErrorType.CONFLICT, "이미 사용 중인 로그인 ID입니다.")
+        }
+        validatePassword(rawPassword, birthDate)
+        val user = UserModel(
+            loginId = loginId,
+            password = passwordEncoder.encode(rawPassword),
+            name = name,
+            birthDate = birthDate,
+            email = email,
+        )
+        return userRepository.save(user)
+    }
+
+    @Transactional
+    fun changePassword(loginId: String, currentRawPassword: String, newRawPassword: String) {
+        val user = authenticate(loginId, currentRawPassword)
+        if (passwordEncoder.matches(newRawPassword, user.password)) {
+            throw CoreException(ErrorType.BAD_REQUEST, "현재 비밀번호와 동일한 비밀번호는 사용할 수 없습니다.")
+        }
+        validatePassword(newRawPassword, user.birthDate)
+        user.changePassword(passwordEncoder.encode(newRawPassword))
+    }
+
+    private fun validatePassword(rawPassword: String, birthDate: LocalDate) {
+        if (rawPassword.length !in 8..16) {
+            throw CoreException(ErrorType.BAD_REQUEST, "비밀번호는 8~16자여야 합니다.")
+        }
+        if (!rawPassword.matches(PASSWORD_REGEX)) {
+            throw CoreException(ErrorType.BAD_REQUEST, "비밀번호는 영문 대소문자, 숫자, 특수문자만 사용 가능합니다.")
+        }
+        if (rawPassword.contains(birthDate.format(BIRTH_DATE_FORMATTER))) {
+            throw CoreException(ErrorType.BAD_REQUEST, "비밀번호에 생년월일을 포함할 수 없습니다.")
+        }
+    }
+
+    companion object {
+        private val LOGIN_ID_REGEX = Regex("^[A-Za-z0-9]+$")
+        private val PASSWORD_REGEX = Regex("""^[A-Za-z0-9!@#${'$'}%^&*()_+\-=\[\]{};':"\\|,.<>/?]+$""")
+        private val BIRTH_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd")
+    }
+}
