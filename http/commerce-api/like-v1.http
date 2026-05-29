@@ -1,0 +1,16 @@
+### ──────────────────────────────────────────────
+### User: 좋아요 등록 (멱등)
+### ──────────────────────────────────────────────
+POST {{commerce-api}}/api/v1/products/1/likes
+X-Loopers-LoginId: user123
+X-Loopers-LoginPw: Valid1!pw
+
+### User: 좋아요 취소 (멱등, hard delete)
+DELETE {{commerce-api}}/api/v1/products/1/likes
+X-Loopers-LoginId: user123
+X-Loopers-LoginPw: Valid1!pw
+
+### User: 본인이 좋아요한 상품 목록 조회 (soft-deleted 상품 제외)
+GET {{commerce-api}}/api/v1/users/1/likes?page=0&size=20
+X-Loopers-LoginId: user123
+X-Loopers-LoginPw: Valid1!pw
