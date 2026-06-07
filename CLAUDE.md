@@ -85,6 +85,50 @@ docker-compose -f ./docker/monitoring-compose.yml up
 ./gradlew ktlintCheck
 ```
 
+## 도메인 & 객체 설계 전략
+
+### 1. Aggregate 와 도메인 모델
+- **Aggregate Root 만 외부에서 참조**합니다. 내부 엔티티(`OrderItem` 등)는 Root 를 통해서만 접근합니다.
+- Aggregate 간은 **ID 참조**만 사용합니다 (`Product → brandId`). JPA 연관관계로 직접 객체 참조하지 않습니다.
+- 한 트랜잭션은 한 Aggregate 변경을 원칙으로 하되, **즉시 정합성이 필요한 두-Aggregate 묶음**(예: Like + Product.likeCount, Order + Product.stock)은 의도적으로 **Facade 가 같은 TX 로 조율**합니다.
+- 도메인 객체는 **비즈니스 규칙을 캡슐화**합니다. 필드는 `protected set` 으로 외부 직접 변경을 막고, 도메인 메서드로만 상태를 바꿉니다.
+
+### 2. Entity / VO / Domain Service 구분
+- **Entity (`XxxModel`)** : 고유 ID + 연속성 + 상태 변화. `BaseEntity` 상속 (예외: `Like` 는 hard delete 라 미상속).
+- **Value Object** : 식별자 없이 "값 자체"가 의미. 불변(`data class` / `value class`). 도메인 규칙 포함 (예: `Stock`, `Money`).
+- **Domain Service** : 단일 도메인 객체에 담기 어려운 협력 로직만. **상태 없는 POJO 처럼 유지** — 가급적 Repository 의존을 피해 단위 테스트 용이성을 보존합니다. Repository 의존이 꼭 필요하면 구조가 어색하지 않은지 먼저 점검합니다.
+
+### 3. Service vs Facade (Application Layer)
+- **ApplicationService** : 단일 도메인 흐름 조율 + 트랜잭션 경계. 본인 도메인의 비즈 로직 수행에 집중하고, 다른 도메인의 Repository 에 직접 접근하지 않습니다.
+- **Facade** : 여러 도메인의 ApplicationService(혹은 Repository) 를 조립해 유즈케이스 흐름을 완성합니다. 도메인 결합이 필요한 흐름(예: 상품 상세 = Product + Brand + Like)은 Facade 에 둡니다.
+- **Controller → Application(Facade/Service)** 경유는 강제입니다. Controller 가 Domain Service 를 직접 호출하지 않습니다.
+
+### 4. 검증 이중화
+- **DTO 검증** (`@Valid` + `@NotBlank` / `@Min` 등) : 요청의 **형식**(null, 길이, 범위) 을 인터페이스 진입부에서 1차 검증.
+- **도메인 검증** (`init` 블록 / 도메인 메서드 / VO 생성자) : 비즈니스 **불변규칙** 을 도메인 안에서 보장.
+- 둘은 책임이 다르므로 **중복으로 보이더라도 둘 다 작성**합니다.
+
+## 아키텍처 & 패키지 구성 전략
+
+### 1. 레이어드 + DIP
+- `interfaces → application → domain ← infrastructure` 단방향 의존을 유지합니다.
+- Repository 는 **인터페이스를 `domain` 에**, 구현체(`XxxRepositoryImpl`) 를 `infrastructure` 에 둡니다.
+- `*Impl` 접미사는 **Repository 에만 한정**합니다 (JPA 기술 격리 목적). 일반 Service 는 구현체가 하나뿐이면 인터페이스를 만들지 않습니다.
+
+### 2. DIP 의 실용주의 적용
+- 도메인 모델에 JPA 어노테이션(`@Entity`, `@Table`, `@Column`) 사용을 허용합니다. ORM 교체 가능성이 거의 없고, 추가 매핑 레이어가 복잡도만 키우기 때문입니다.
+- 단, **도메인 모델은 Spring Data Repository 인터페이스를 직접 상속하지 않습니다**. 도메인 Repository 인터페이스는 순수 추상화만 갖고, Impl 이 `XxxJpaRepository` 를 위임합니다.
+
+### 3. 패키지 구성
+- **계층 > 도메인** 구조를 유지합니다. (`interfaces/api/{domain}`, `application/{domain}`, `domain/{domain}`, `infrastructure/{domain}`)
+- 같은 도메인 코드를 4개 레이어에 흩뿌리는 비용은 있지만, 레이어 경계와 의존방향을 한눈에 보기 좋습니다.
+
+### 4. DTO 경계 (재강조)
+- `interfaces/api/{domain}/XxxV1Dto` : 외부 노출용 요청/응답.
+- `application/{domain}/XxxInfo` : 유즈케이스가 반환하는 표현용 결과.
+- `domain/{domain}/XxxModel` : 영속 도메인 객체.
+- 레이어 경계를 넘을 때 DTO/Info 매핑은 Controller / Facade 가 책임집니다.
+
 ## 개발 규칙
 
 ### 진행 Workflow - 증강 코딩
@@ -125,7 +169,7 @@ docker-compose -f ./docker/monitoring-compose.yml up
 - 운영 코드에 `println` / 디버그용 출력 금지. 필요한 경우 `slf4j` 로깅을 사용합니다.
 - 테스트를 삭제하거나 `@Disabled` 로 우회하여 빌드를 통과시키지 않습니다. 실패의 원인을 분석하고 코드(또는 테스트)를 올바르게 수정합니다.
 - `git commit --no-verify`, `ktlint` 무시 등으로 hook 우회 금지.
-a- **커밋/PR 메시지에 Claude·AI 어시스턴트 서명을 절대 남기지 않습니다** (`Co-Authored-By: Claude ...`, `🤖 Generated with [Claude Code]` 등 일체 제외).
+- **커밋/PR 메시지에 Claude·AI 어시스턴트 서명을 절대 남기지 않습니다** (`Co-Authored-By: Claude ...`, `🤖 Generated with [Claude Code]` 등 일체 제외).
 - DB 마이그레이션/스키마, 인프라 설정을 임의로 변경하지 않습니다 (요청 시 제안만).
 
 ### 2. Recommendation

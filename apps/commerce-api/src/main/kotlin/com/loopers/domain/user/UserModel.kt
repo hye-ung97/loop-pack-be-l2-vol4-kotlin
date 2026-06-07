@@ -3,7 +3,10 @@ package com.loopers.domain.user
 import com.loopers.domain.BaseEntity
 import com.loopers.support.error.CoreException
 import com.loopers.support.error.ErrorType
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Table
 import java.time.LocalDate
 
@@ -15,6 +18,7 @@ class UserModel(
     name: String,
     birthDate: LocalDate,
     email: String,
+    role: UserRole = UserRole.USER,
 ) : BaseEntity() {
     var loginId: String = loginId
         protected set
@@ -29,6 +33,11 @@ class UserModel(
         protected set
 
     var email: String = email
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    var role: UserRole = role
         protected set
 
     init {
