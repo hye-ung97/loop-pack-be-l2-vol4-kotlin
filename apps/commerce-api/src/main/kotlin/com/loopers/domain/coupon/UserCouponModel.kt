@@ -1,6 +1,8 @@
 package com.loopers.domain.coupon
 
 import com.loopers.domain.BaseEntity
+import com.loopers.support.error.CoreException
+import com.loopers.support.error.ErrorType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -45,5 +47,13 @@ class UserCouponModel(
         status == CouponStatus.USED -> CouponStatus.USED
         coupon.isExpired(now) -> CouponStatus.EXPIRED
         else -> CouponStatus.AVAILABLE
+    }
+
+    fun use(now: ZonedDateTime) {
+        if (status != CouponStatus.AVAILABLE) {
+            throw CoreException(ErrorType.CONFLICT, "사용할 수 없는 쿠폰입니다.")
+        }
+        status = CouponStatus.USED
+        usedAt = now
     }
 }

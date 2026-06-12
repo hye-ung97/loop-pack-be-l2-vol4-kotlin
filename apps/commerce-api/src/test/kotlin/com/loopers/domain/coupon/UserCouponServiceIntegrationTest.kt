@@ -93,6 +93,94 @@ class UserCouponServiceIntegrationTest @Autowired constructor(
         }
     }
 
+    @DisplayName("쿠폰을 사용할 때,")
+    @Nested
+    inner class Use {
+        private val now: ZonedDateTime = ZonedDateTime.parse("2026-06-12T00:00:00+09:00")
+
+        @DisplayName("보유한 사용 가능 쿠폰이면, 할인액을 반환하고 USED 로 전이된다.")
+        @Test
+        fun returnsDiscountAndMarksUsed_whenUsable() {
+            // arrange
+            val template = coupon() // RATE 10%, minOrderAmount 10_000
+            val issued = userCouponService.issue(userId = 1L, couponId = template.id)
+
+            // act
+            val discount = userCouponService.use(userId = 1L, couponId = template.id, orderAmount = 20_000, now = now)
+
+            // assert
+            assertThat(discount).isEqualTo(2_000L)
+            val reloaded = userCouponService.getMyCoupons(1L, PageRequest.of(0, 10)).content.first { it.id == issued.id }
+            assertThat(reloaded.status).isEqualTo(CouponStatus.USED)
+        }
+
+        @DisplayName("보유하지 않은(타 유저 소유 포함) 쿠폰이면, NOT_FOUND 예외가 발생한다.")
+        @Test
+        fun throwsNotFound_whenNotOwned() {
+            // arrange
+            val template = coupon()
+            userCouponService.issue(userId = 2L, couponId = template.id)
+
+            // act
+            val result = assertThrows<CoreException> {
+                userCouponService.use(userId = 1L, couponId = template.id, orderAmount = 20_000, now = now)
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.NOT_FOUND)
+        }
+
+        @DisplayName("이미 사용한 쿠폰이면, CONFLICT 예외가 발생한다.")
+        @Test
+        fun throwsConflict_whenAlreadyUsed() {
+            // arrange
+            val template = coupon()
+            userCouponService.issue(userId = 1L, couponId = template.id)
+            userCouponService.use(userId = 1L, couponId = template.id, orderAmount = 20_000, now = now)
+
+            // act
+            val result = assertThrows<CoreException> {
+                userCouponService.use(userId = 1L, couponId = template.id, orderAmount = 20_000, now = now)
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.CONFLICT)
+        }
+
+        @DisplayName("만료된 쿠폰이면, CONFLICT 예외가 발생한다.")
+        @Test
+        fun throwsConflict_whenExpired() {
+            // arrange
+            val template = coupon()
+            userCouponService.issue(userId = 1L, couponId = template.id)
+            val afterExpiry = ZonedDateTime.parse("2027-01-01T00:00:00+09:00")
+
+            // act
+            val result = assertThrows<CoreException> {
+                userCouponService.use(userId = 1L, couponId = template.id, orderAmount = 20_000, now = afterExpiry)
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.CONFLICT)
+        }
+
+        @DisplayName("최소 주문 금액 조건을 만족하지 않으면, CONFLICT 예외가 발생한다.")
+        @Test
+        fun throwsConflict_whenBelowMinOrderAmount() {
+            // arrange
+            val template = coupon() // minOrderAmount 10_000
+            userCouponService.issue(userId = 1L, couponId = template.id)
+
+            // act
+            val result = assertThrows<CoreException> {
+                userCouponService.use(userId = 1L, couponId = template.id, orderAmount = 9_999, now = now)
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.CONFLICT)
+        }
+    }
+
     @DisplayName("내 쿠폰 목록을 조회할 때,")
     @Nested
     inner class GetMyCoupons {

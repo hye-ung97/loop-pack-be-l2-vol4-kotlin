@@ -15,6 +15,9 @@ class UserCouponRepositoryImpl(
     override fun existsByUserIdAndCouponId(userId: Long, couponId: Long): Boolean =
         userCouponJpaRepository.existsByUserIdAndCouponId(userId, couponId)
 
+    override fun findByUserIdAndCouponId(userId: Long, couponId: Long): UserCouponModel? =
+        userCouponJpaRepository.findByUserIdAndCouponId(userId, couponId)
+
     override fun findAllByUserId(userId: Long, pageable: Pageable): Page<UserCouponModel> =
         userCouponJpaRepository.findAllByUserIdOrderByIdDesc(userId, pageable)
 
