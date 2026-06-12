@@ -19,6 +19,8 @@ import jakarta.persistence.Table
 class OrderModel protected constructor(
     userId: Long,
     items: List<OrderItemModel>,
+    couponId: Long?,
+    discountAmount: Long,
 ) : BaseEntity() {
     @Column(name = "user_id", nullable = false)
     var userId: Long = userId
@@ -33,6 +35,18 @@ class OrderModel protected constructor(
     var totalPrice: Long = items.sumOf { it.lineTotal }
         protected set
 
+    @Column(name = "discount_amount", nullable = false)
+    var discountAmount: Long = discountAmount
+        protected set
+
+    @Column(name = "final_amount", nullable = false)
+    var finalAmount: Long = items.sumOf { it.lineTotal } - discountAmount
+        protected set
+
+    @Column(name = "coupon_id")
+    var couponId: Long? = couponId
+        protected set
+
     @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "order_id", nullable = false, foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private val mutableItems: MutableList<OrderItemModel> = items.toMutableList()
@@ -42,6 +56,12 @@ class OrderModel protected constructor(
     init {
         if (items.isEmpty()) {
             throw CoreException(ErrorType.BAD_REQUEST, "주문 항목은 최소 1개 이상이어야 합니다.")
+        }
+        if (discountAmount < 0) {
+            throw CoreException(ErrorType.BAD_REQUEST, "할인 금액은 0 이상이어야 합니다.")
+        }
+        if (discountAmount > totalPrice) {
+            throw CoreException(ErrorType.BAD_REQUEST, "할인 금액은 주문 금액을 초과할 수 없습니다.")
         }
     }
 
@@ -58,6 +78,11 @@ class OrderModel protected constructor(
     }
 
     companion object {
-        fun create(userId: Long, items: List<OrderItemModel>): OrderModel = OrderModel(userId, items)
+        fun create(
+            userId: Long,
+            items: List<OrderItemModel>,
+            couponId: Long? = null,
+            discountAmount: Long = 0,
+        ): OrderModel = OrderModel(userId, items, couponId, discountAmount)
     }
 }
