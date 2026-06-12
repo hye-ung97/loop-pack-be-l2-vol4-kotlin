@@ -1,5 +1,6 @@
 package com.loopers.application.order
 
+import com.loopers.domain.coupon.UserCouponService
 import com.loopers.domain.order.OrderItemModel
 import com.loopers.domain.order.OrderService
 import com.loopers.domain.product.ProductService
@@ -17,9 +18,15 @@ class OrderFacade(
     private val userService: UserService,
     private val productService: ProductService,
     private val orderService: OrderService,
+    private val userCouponService: UserCouponService,
 ) {
     @Transactional
-    fun place(loginId: String, rawPassword: String, requestItems: List<PlaceOrderLine>): OrderInfo {
+    fun place(
+        loginId: String,
+        rawPassword: String,
+        requestItems: List<PlaceOrderLine>,
+        couponId: Long? = null,
+    ): OrderInfo {
         if (requestItems.isEmpty()) {
             throw CoreException(ErrorType.BAD_REQUEST, "주문 항목은 최소 1개 이상이어야 합니다.")
         }
@@ -51,7 +58,12 @@ class OrderFacade(
             )
         }
 
-        val order = orderService.createPending(user.id, orderItems)
+        val originalAmount = orderItems.sumOf { it.lineTotal }
+        val discountAmount = couponId?.let {
+            userCouponService.use(user.id, it, originalAmount, ZonedDateTime.now())
+        } ?: 0L
+
+        val order = orderService.createPending(user.id, orderItems, couponId, discountAmount)
         return OrderInfo.from(order)
     }
 

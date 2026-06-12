@@ -10,6 +10,9 @@ data class OrderInfo(
     val userId: Long,
     val status: OrderStatus,
     val totalPrice: Long,
+    val discountAmount: Long,
+    val finalAmount: Long,
+    val couponId: Long?,
     val items: List<OrderItemInfo>,
     val createdAt: ZonedDateTime,
 ) {
@@ -37,6 +40,9 @@ data class OrderInfo(
             userId = order.userId,
             status = order.status,
             totalPrice = order.totalPrice,
+            discountAmount = order.discountAmount,
+            finalAmount = order.finalAmount,
+            couponId = order.couponId,
             items = order.items.map(OrderItemInfo::from),
             createdAt = order.createdAt,
         )

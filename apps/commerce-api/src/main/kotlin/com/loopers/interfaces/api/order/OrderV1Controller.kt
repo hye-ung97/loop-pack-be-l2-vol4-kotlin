@@ -28,7 +28,7 @@ class OrderV1Controller(
         @RequestBody request: OrderV1Dto.PlaceOrderRequest,
     ): ApiResponse<OrderV1Dto.OrderResponse> {
         val requestLines = request.items.map { OrderFacade.PlaceOrderLine(it.productId, it.quantity) }
-        return orderFacade.place(loginId, loginPw, requestLines)
+        return orderFacade.place(loginId, loginPw, requestLines, request.couponId)
             .let { OrderV1Dto.OrderResponse.from(it) }
             .let { ApiResponse.success(it) }
     }
