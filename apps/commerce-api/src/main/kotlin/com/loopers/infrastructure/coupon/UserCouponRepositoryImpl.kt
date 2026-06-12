@@ -17,4 +17,7 @@ class UserCouponRepositoryImpl(
 
     override fun findAllByUserId(userId: Long, pageable: Pageable): Page<UserCouponModel> =
         userCouponJpaRepository.findAllByUserIdOrderByIdDesc(userId, pageable)
+
+    override fun findAllByCouponId(couponId: Long, pageable: Pageable): Page<UserCouponModel> =
+        userCouponJpaRepository.findAllByCouponIdOrderByIdDesc(couponId, pageable)
 }

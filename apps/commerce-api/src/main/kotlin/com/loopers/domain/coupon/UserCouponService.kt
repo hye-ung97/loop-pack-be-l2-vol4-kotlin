@@ -25,4 +25,7 @@ class UserCouponService(
 
     fun getMyCoupons(userId: Long, pageable: Pageable): Page<UserCouponModel> =
         userCouponRepository.findAllByUserId(userId, pageable)
+
+    fun getIssues(couponId: Long, pageable: Pageable): Page<UserCouponModel> =
+        userCouponRepository.findAllByCouponId(couponId, pageable)
 }

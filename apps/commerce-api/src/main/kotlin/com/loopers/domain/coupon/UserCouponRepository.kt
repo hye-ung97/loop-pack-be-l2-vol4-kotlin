@@ -7,4 +7,5 @@ interface UserCouponRepository {
     fun save(userCoupon: UserCouponModel): UserCouponModel
     fun existsByUserIdAndCouponId(userId: Long, couponId: Long): Boolean
     fun findAllByUserId(userId: Long, pageable: Pageable): Page<UserCouponModel>
+    fun findAllByCouponId(couponId: Long, pageable: Pageable): Page<UserCouponModel>
 }
