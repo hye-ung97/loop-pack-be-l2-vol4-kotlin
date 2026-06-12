@@ -47,9 +47,13 @@ class OrderFacade(
             }
         }
 
+        // 데드락 회피를 위해 productId 오름차순으로 재고를 원자적으로 차감한다.
+        requestItems.sortedBy { it.productId }.forEach { req ->
+            productService.deductStock(req.productId, req.quantity)
+        }
+
         val orderItems = requestItems.map { req ->
             val product = productsById.getValue(req.productId)
-            product.deduct(req.quantity)
             OrderItemModel(
                 productId = product.id,
                 productNameSnapshot = product.name,
