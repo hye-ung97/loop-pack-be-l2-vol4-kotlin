@@ -7,4 +7,5 @@ interface CouponRepository {
     fun save(coupon: CouponModel): CouponModel
     fun findActiveById(id: Long): CouponModel?
     fun findAllActive(pageable: Pageable): Page<CouponModel>
+    fun findAllByIds(ids: List<Long>): List<CouponModel>
 }

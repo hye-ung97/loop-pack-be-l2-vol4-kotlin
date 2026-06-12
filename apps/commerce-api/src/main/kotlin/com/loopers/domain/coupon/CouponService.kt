@@ -38,6 +38,8 @@ class CouponService(
 
     fun getAll(pageable: Pageable): Page<CouponModel> = couponRepository.findAllActive(pageable)
 
+    fun findAllByIds(ids: List<Long>): List<CouponModel> = couponRepository.findAllByIds(ids)
+
     @Transactional
     fun update(
         id: Long,

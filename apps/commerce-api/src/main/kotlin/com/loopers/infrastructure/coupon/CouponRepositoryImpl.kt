@@ -15,4 +15,7 @@ class CouponRepositoryImpl(
     override fun findActiveById(id: Long): CouponModel? = couponJpaRepository.findActiveById(id)
 
     override fun findAllActive(pageable: Pageable): Page<CouponModel> = couponJpaRepository.findAllActive(pageable)
+
+    override fun findAllByIds(ids: List<Long>): List<CouponModel> =
+        if (ids.isEmpty()) emptyList() else couponJpaRepository.findAllById(ids).toList()
 }

@@ -27,6 +27,33 @@ data class CouponInfo(
     }
 }
 
+/** 내 쿠폰 표현 (대고객) — 템플릿 정보 + 조회 시점 파생 상태 */
+data class MyCouponInfo(
+    val id: Long,
+    val couponId: Long,
+    val name: String,
+    val discountType: DiscountType,
+    val discountValue: Long,
+    val minOrderAmount: Long?,
+    val status: CouponStatus,
+    val expiredAt: ZonedDateTime,
+    val usedAt: ZonedDateTime?,
+) {
+    companion object {
+        fun from(userCoupon: UserCouponModel, coupon: CouponModel, now: ZonedDateTime): MyCouponInfo = MyCouponInfo(
+            id = userCoupon.id,
+            couponId = userCoupon.couponId,
+            name = coupon.name,
+            discountType = coupon.discountType,
+            discountValue = coupon.discountValue,
+            minOrderAmount = coupon.minOrderAmount,
+            status = userCoupon.statusAt(coupon, now),
+            expiredAt = coupon.expiredAt,
+            usedAt = userCoupon.usedAt,
+        )
+    }
+}
+
 /** 발급 내역 표현 (ADMIN) */
 data class IssuedCouponInfo(
     val id: Long,
