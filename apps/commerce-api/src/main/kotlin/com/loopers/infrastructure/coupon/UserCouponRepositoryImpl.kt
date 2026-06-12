@@ -5,6 +5,7 @@ import com.loopers.domain.coupon.UserCouponRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
+import java.time.ZonedDateTime
 
 @Repository
 class UserCouponRepositoryImpl(
@@ -23,4 +24,7 @@ class UserCouponRepositoryImpl(
 
     override fun findAllByCouponId(couponId: Long, pageable: Pageable): Page<UserCouponModel> =
         userCouponJpaRepository.findAllByCouponIdOrderByIdDesc(couponId, pageable)
+
+    override fun useIfAvailable(id: Long, usedAt: ZonedDateTime): Int =
+        userCouponJpaRepository.useIfAvailable(id, usedAt)
 }

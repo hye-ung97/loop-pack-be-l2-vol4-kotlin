@@ -46,25 +46,6 @@ class ProductModel(
         requireValidPrice(price)
     }
 
-    fun deduct(quantity: Int) {
-        this.stock = stock.deduct(quantity)
-    }
-
-    fun restoreStock(quantity: Int) {
-        this.stock = stock.restore(quantity)
-    }
-
-    fun increaseLikeCount() {
-        this.likeCount += 1
-    }
-
-    fun decreaseLikeCount() {
-        if (likeCount == 0L) {
-            throw CoreException(ErrorType.BAD_REQUEST, "좋아요 수가 0 이하로 내려갈 수 없습니다.")
-        }
-        this.likeCount -= 1
-    }
-
     fun rename(newName: String) {
         requireValidName(newName)
         this.name = newName

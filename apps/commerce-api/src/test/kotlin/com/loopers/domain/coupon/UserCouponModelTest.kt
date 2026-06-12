@@ -1,12 +1,9 @@
 package com.loopers.domain.coupon
 
-import com.loopers.support.error.CoreException
-import com.loopers.support.error.ErrorType
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.ZonedDateTime
 
 class UserCouponModelTest {
@@ -64,40 +61,6 @@ class UserCouponModelTest {
 
             // assert
             assertThat(target.statusAt(expiredCoupon, now)).isEqualTo(CouponStatus.EXPIRED)
-        }
-    }
-
-    @DisplayName("쿠폰을 사용할 때,")
-    @Nested
-    inner class Use {
-        @DisplayName("AVAILABLE 상태면, USED 로 전이되고 사용 시각이 기록된다.")
-        @Test
-        fun transitionsToUsed_whenAvailable() {
-            // arrange
-            val target = userCoupon()
-            val now = ZonedDateTime.parse("2026-06-12T00:00:00+09:00")
-
-            // act
-            target.use(now)
-
-            // assert
-            assertThat(target.status).isEqualTo(CouponStatus.USED)
-            assertThat(target.usedAt).isEqualTo(now)
-        }
-
-        @DisplayName("이미 USED 상태면, CONFLICT 예외가 발생한다.")
-        @Test
-        fun throwsConflict_whenAlreadyUsed() {
-            // arrange
-            val target = userCoupon()
-            val now = ZonedDateTime.parse("2026-06-12T00:00:00+09:00")
-            target.use(now)
-
-            // act
-            val result = assertThrows<CoreException> { target.use(now) }
-
-            // assert
-            assertThat(result.errorType).isEqualTo(ErrorType.CONFLICT)
         }
     }
 }

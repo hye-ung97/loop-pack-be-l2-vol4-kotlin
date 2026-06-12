@@ -16,22 +16,5 @@ data class Stock(
         }
     }
 
-    fun deduct(amount: Int): Stock {
-        if (amount <= 0) {
-            throw CoreException(ErrorType.BAD_REQUEST, "차감 수량은 1 이상이어야 합니다.")
-        }
-        if (quantity < amount) {
-            throw CoreException(ErrorType.CONFLICT, "재고가 부족합니다.")
-        }
-        return Stock(quantity - amount)
-    }
-
-    fun restore(amount: Int): Stock {
-        if (amount <= 0) {
-            throw CoreException(ErrorType.BAD_REQUEST, "복구 수량은 1 이상이어야 합니다.")
-        }
-        return Stock(quantity + amount)
-    }
-
     fun isEnough(amount: Int): Boolean = quantity >= amount
 }

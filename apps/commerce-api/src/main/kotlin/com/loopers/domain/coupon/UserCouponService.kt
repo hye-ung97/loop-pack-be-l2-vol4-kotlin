@@ -30,11 +30,14 @@ class UserCouponService(
             ?: throw CoreException(ErrorType.NOT_FOUND, "보유하지 않은 쿠폰입니다.")
         val coupon = couponRepository.findActiveById(couponId)
             ?: throw CoreException(ErrorType.NOT_FOUND, "존재하지 않는 쿠폰입니다.")
-        if (userCoupon.statusAt(coupon, now) != CouponStatus.AVAILABLE) {
-            throw CoreException(ErrorType.CONFLICT, "사용할 수 없는 쿠폰입니다.")
+        if (coupon.isExpired(now)) {
+            throw CoreException(ErrorType.CONFLICT, "만료된 쿠폰입니다.")
         }
         val discount = coupon.calculateDiscount(orderAmount)
-        userCoupon.use(now)
+        // 상태 조건부 UPDATE로 동시 사용 시 단 한 번만 성공하도록 보장한다.
+        if (userCouponRepository.useIfAvailable(userCoupon.id, now) == 0) {
+            throw CoreException(ErrorType.CONFLICT, "이미 사용된 쿠폰입니다.")
+        }
         return discount
     }
 
