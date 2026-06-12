@@ -27,7 +27,7 @@ class LikeFacade(
         val product = productService.getActiveById(productId)
         if (likeRepository.existsByUserIdAndProductId(user.id, product.id)) return
         likeRepository.save(LikeModel(userId = user.id, productId = product.id))
-        product.increaseLikeCount()
+        productService.increaseLikeCount(product.id)
     }
 
     @Transactional
@@ -35,8 +35,7 @@ class LikeFacade(
         val user = userService.authenticate(loginId, rawPassword)
         val affected = likeRepository.deleteByUserIdAndProductId(user.id, productId)
         if (affected == 0) return
-        val product = productService.getActiveById(productId)
-        product.decreaseLikeCount()
+        productService.decreaseLikeCount(productId)
     }
 
     @Transactional(readOnly = true)
