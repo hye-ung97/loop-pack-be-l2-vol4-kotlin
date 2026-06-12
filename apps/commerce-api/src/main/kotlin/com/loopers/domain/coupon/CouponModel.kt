@@ -59,6 +59,25 @@ class CouponModel(
 
     fun isExpired(now: ZonedDateTime): Boolean = now.isAfter(expiredAt)
 
+    fun update(
+        name: String,
+        discountType: DiscountType,
+        discountValue: Long,
+        minOrderAmount: Long?,
+        expiredAt: ZonedDateTime,
+    ) {
+        requireValidName(name)
+        discountType.validateValue(discountValue)
+        if (minOrderAmount != null && minOrderAmount < 0) {
+            throw CoreException(ErrorType.BAD_REQUEST, "최소 주문 금액은 0 이상이어야 합니다.")
+        }
+        this.name = name
+        this.discountType = discountType
+        this.discountValue = discountValue
+        this.minOrderAmount = minOrderAmount
+        this.expiredAt = expiredAt
+    }
+
     private fun requireValidName(name: String) {
         if (name.isBlank()) {
             throw CoreException(ErrorType.BAD_REQUEST, "쿠폰 이름은 비어있을 수 없습니다.")
