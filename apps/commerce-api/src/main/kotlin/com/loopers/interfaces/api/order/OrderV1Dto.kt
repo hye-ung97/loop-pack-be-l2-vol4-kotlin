@@ -7,6 +7,7 @@ import java.time.ZonedDateTime
 class OrderV1Dto {
     data class PlaceOrderRequest(
         val items: List<OrderLineRequest>,
+        val couponId: Long? = null,
     )
 
     data class OrderLineRequest(
@@ -37,6 +38,9 @@ class OrderV1Dto {
         val userId: Long,
         val status: OrderStatus,
         val totalPrice: Long,
+        val discountAmount: Long,
+        val finalAmount: Long,
+        val couponId: Long?,
         val items: List<OrderItemResponse>,
         val createdAt: ZonedDateTime,
     ) {
@@ -46,6 +50,9 @@ class OrderV1Dto {
                 userId = info.userId,
                 status = info.status,
                 totalPrice = info.totalPrice,
+                discountAmount = info.discountAmount,
+                finalAmount = info.finalAmount,
+                couponId = info.couponId,
                 items = info.items.map(OrderItemResponse::from),
                 createdAt = info.createdAt,
             )

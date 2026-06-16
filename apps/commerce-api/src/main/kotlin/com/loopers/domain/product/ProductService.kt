@@ -69,26 +69,24 @@ class ProductService(
 
     @Transactional
     fun deductStock(id: Long, quantity: Int) {
-        val product = getActiveById(id)
-        product.deduct(quantity)
+        if (productRepository.decreaseStockIfEnough(id, quantity) == 0) {
+            throw CoreException(ErrorType.CONFLICT, "재고가 부족하거나 존재하지 않는 상품입니다.")
+        }
     }
 
     @Transactional
     fun restoreStock(id: Long, quantity: Int) {
-        val product = getActiveById(id)
-        product.restoreStock(quantity)
+        productRepository.increaseStock(id, quantity)
     }
 
     @Transactional
     fun increaseLikeCount(id: Long) {
-        val product = getActiveById(id)
-        product.increaseLikeCount()
+        productRepository.increaseLikeCount(id)
     }
 
     @Transactional
     fun decreaseLikeCount(id: Long) {
-        val product = getActiveById(id)
-        product.decreaseLikeCount()
+        productRepository.decreaseLikeCountIfPositive(id)
     }
 
     @Transactional

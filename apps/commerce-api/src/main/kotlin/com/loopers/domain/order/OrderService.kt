@@ -14,8 +14,13 @@ class OrderService(
     private val orderRepository: OrderRepository,
 ) {
     @Transactional
-    fun createPending(userId: Long, items: List<OrderItemModel>): OrderModel {
-        val order = OrderModel.create(userId, items)
+    fun createPending(
+        userId: Long,
+        items: List<OrderItemModel>,
+        couponId: Long? = null,
+        discountAmount: Long = 0,
+    ): OrderModel {
+        val order = OrderModel.create(userId, items, couponId, discountAmount)
         return orderRepository.save(order)
     }
 

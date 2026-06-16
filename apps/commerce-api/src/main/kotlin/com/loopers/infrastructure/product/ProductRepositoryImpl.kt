@@ -32,4 +32,13 @@ class ProductRepositoryImpl(
 
     override fun findAllActiveByBrandId(brandId: Long): List<ProductModel> =
         productJpaRepository.findAllActiveByBrandId(brandId)
+
+    override fun decreaseStockIfEnough(id: Long, quantity: Int): Int =
+        productJpaRepository.decreaseStockIfEnough(id, quantity)
+
+    override fun increaseStock(id: Long, quantity: Int): Int = productJpaRepository.increaseStock(id, quantity)
+
+    override fun increaseLikeCount(id: Long): Int = productJpaRepository.increaseLikeCount(id)
+
+    override fun decreaseLikeCountIfPositive(id: Long): Int = productJpaRepository.decreaseLikeCountIfPositive(id)
 }

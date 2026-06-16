@@ -5,10 +5,33 @@ import com.loopers.domain.product.ProductStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface ProductJpaRepository : JpaRepository<ProductModel, Long> {
+    @Modifying
+    @Query(
+        """
+            UPDATE ProductModel p
+            SET p.stock.quantity = p.stock.quantity - :quantity
+            WHERE p.id = :id AND p.deletedAt IS NULL AND p.stock.quantity >= :quantity
+        """,
+    )
+    fun decreaseStockIfEnough(@Param("id") id: Long, @Param("quantity") quantity: Int): Int
+
+    @Modifying
+    @Query("UPDATE ProductModel p SET p.stock.quantity = p.stock.quantity + :quantity WHERE p.id = :id AND p.deletedAt IS NULL")
+    fun increaseStock(@Param("id") id: Long, @Param("quantity") quantity: Int): Int
+
+    @Modifying
+    @Query("UPDATE ProductModel p SET p.likeCount = p.likeCount + 1 WHERE p.id = :id AND p.deletedAt IS NULL")
+    fun increaseLikeCount(@Param("id") id: Long): Int
+
+    @Modifying
+    @Query("UPDATE ProductModel p SET p.likeCount = p.likeCount - 1 WHERE p.id = :id AND p.deletedAt IS NULL AND p.likeCount > 0")
+    fun decreaseLikeCountIfPositive(@Param("id") id: Long): Int
+
     @Query(
         "SELECT p FROM ProductModel p WHERE p.id = :id AND p.deletedAt IS NULL AND p.status = :status",
     )

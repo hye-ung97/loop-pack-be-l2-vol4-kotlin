@@ -41,6 +41,57 @@ class OrderModelTest {
             )
         }
 
+        @DisplayName("쿠폰 없이 생성하면, 할인 금액은 0이고 최종 금액은 totalPrice와 같으며 couponId는 null이다.")
+        @Test
+        fun snapshot_withoutCoupon() {
+            // arrange
+            val items = listOf(item(unitPrice = 1_000, quantity = 2))
+
+            // act
+            val order = OrderModel.create(userId = 1L, items = items)
+
+            // assert
+            assertAll(
+                { assertThat(order.totalPrice).isEqualTo(2_000L) },
+                { assertThat(order.discountAmount).isEqualTo(0L) },
+                { assertThat(order.finalAmount).isEqualTo(2_000L) },
+                { assertThat(order.couponId).isNull() },
+            )
+        }
+
+        @DisplayName("쿠폰을 적용해 생성하면, 최종 금액은 totalPrice에서 할인 금액을 뺀 값이고 couponId가 기록된다.")
+        @Test
+        fun snapshot_withCoupon() {
+            // arrange
+            val items = listOf(item(unitPrice = 1_000, quantity = 10)) // total 10_000
+
+            // act
+            val order = OrderModel.create(userId = 1L, items = items, couponId = 42L, discountAmount = 1_500)
+
+            // assert
+            assertAll(
+                { assertThat(order.totalPrice).isEqualTo(10_000L) },
+                { assertThat(order.discountAmount).isEqualTo(1_500L) },
+                { assertThat(order.finalAmount).isEqualTo(8_500L) },
+                { assertThat(order.couponId).isEqualTo(42L) },
+            )
+        }
+
+        @DisplayName("할인 금액이 totalPrice를 초과하면, BAD_REQUEST 예외가 발생한다.")
+        @Test
+        fun throwsBadRequest_whenDiscountExceedsTotal() {
+            // arrange
+            val items = listOf(item(unitPrice = 1_000, quantity = 2)) // total 2_000
+
+            // act
+            val result = assertThrows<CoreException> {
+                OrderModel.create(userId = 1L, items = items, couponId = 1L, discountAmount = 2_001)
+            }
+
+            // assert
+            assertThat(result.errorType).isEqualTo(ErrorType.BAD_REQUEST)
+        }
+
         @DisplayName("항목이 비어있으면, BAD_REQUEST 예외가 발생한다.")
         @Test
         fun throwsBadRequest_whenItemsAreEmpty() {
