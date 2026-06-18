@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 class ProductAdminFacade(
     private val productService: ProductService,
     private val brandService: BrandService,
+    private val productCacheStore: ProductCacheStore,
 ) {
     @Transactional
     fun create(
@@ -44,12 +45,14 @@ class ProductAdminFacade(
     @Transactional
     fun update(productId: Long, name: String?, price: Long?, status: ProductStatus?): ProductInfo {
         productService.update(productId, name, price, status)
+        productCacheStore.evictProductDetail(productId)
         return getById(productId)
     }
 
     @Transactional
     fun delete(productId: Long) {
         productService.delete(productId)
+        productCacheStore.evictProductDetail(productId)
     }
 
     private fun mapToProductInfoPage(productsPage: Page<ProductModel>): Page<ProductInfo> {
