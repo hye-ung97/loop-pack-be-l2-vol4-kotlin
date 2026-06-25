@@ -8,6 +8,7 @@ import com.loopers.domain.product.ProductSort
 import com.loopers.support.error.CoreException
 import com.loopers.support.error.ErrorType
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 
@@ -15,16 +16,32 @@ import org.springframework.stereotype.Component
 class ProductFacade(
     private val productService: ProductService,
     private val brandService: BrandService,
+    private val productCacheStore: ProductCacheStore,
 ) {
     fun getProductDetail(productId: Long): ProductInfo {
+        productCacheStore.getProductDetail(productId)?.let { return it }
+
         val product = productService.getOnSaleById(productId)
         val brand = brandService.getById(product.brandId)
-        return ProductInfo.from(product, brand)
+        val productInfo = ProductInfo.from(product, brand)
+        productCacheStore.setProductDetail(productId, productInfo)
+        return productInfo
     }
 
     fun getProducts(brandId: Long?, sort: ProductSort, pageable: Pageable): Page<ProductInfo> {
+        productCacheStore.getProductList(brandId, sort, pageable)?.let {
+            return PageImpl(it.content, pageable, it.totalElements)
+        }
+
         val productsPage = productService.getOnSaleProducts(brandId, sort, pageable)
-        return mapToProductInfoPage(productsPage)
+        val productInfoPage = mapToProductInfoPage(productsPage)
+        productCacheStore.setProductList(
+            brandId,
+            sort,
+            pageable,
+            CachedProductPage(content = productInfoPage.content, totalElements = productInfoPage.totalElements),
+        )
+        return productInfoPage
     }
 
     private fun mapToProductInfoPage(productsPage: Page<ProductModel>): Page<ProductInfo> {

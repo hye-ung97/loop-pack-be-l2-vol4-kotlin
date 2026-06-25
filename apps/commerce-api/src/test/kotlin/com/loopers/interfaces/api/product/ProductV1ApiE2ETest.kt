@@ -5,6 +5,7 @@ import com.loopers.domain.product.ProductService
 import com.loopers.domain.product.ProductStatus
 import com.loopers.interfaces.api.ApiResponse
 import com.loopers.utils.DatabaseCleanUp
+import com.loopers.utils.RedisCleanUp
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.DisplayName
@@ -25,10 +26,12 @@ class ProductV1ApiE2ETest @Autowired constructor(
     private val brandService: BrandService,
     private val productService: ProductService,
     private val databaseCleanUp: DatabaseCleanUp,
+    private val redisCleanUp: RedisCleanUp,
 ) {
     @AfterEach
     fun tearDown() {
         databaseCleanUp.truncateAllTables()
+        redisCleanUp.truncateAll()
     }
 
     @DisplayName("GET /api/v1/products/{productId}")

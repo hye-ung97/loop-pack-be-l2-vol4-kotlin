@@ -1,5 +1,6 @@
 package com.loopers.application.like
 
+import com.loopers.application.product.ProductCacheStore
 import com.loopers.application.product.ProductInfo
 import com.loopers.domain.brand.BrandService
 import com.loopers.domain.like.LikeModel
@@ -20,6 +21,7 @@ class LikeFacade(
     private val productService: ProductService,
     private val brandService: BrandService,
     private val likeRepository: LikeRepository,
+    private val productCacheStore: ProductCacheStore,
 ) {
     @Transactional
     fun like(loginId: String, rawPassword: String, productId: Long) {
@@ -28,6 +30,7 @@ class LikeFacade(
         if (likeRepository.existsByUserIdAndProductId(user.id, product.id)) return
         likeRepository.save(LikeModel(userId = user.id, productId = product.id))
         productService.increaseLikeCount(product.id)
+        productCacheStore.evictProductDetail(product.id)
     }
 
     @Transactional
@@ -36,6 +39,7 @@ class LikeFacade(
         val affected = likeRepository.deleteByUserIdAndProductId(user.id, productId)
         if (affected == 0) return
         productService.decreaseLikeCount(productId)
+        productCacheStore.evictProductDetail(productId)
     }
 
     @Transactional(readOnly = true)
